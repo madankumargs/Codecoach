@@ -12,6 +12,9 @@ import { prisma } from "@/lib/prisma";
 import { runTestCases } from "@/lib/piston";
 import { evaluateCode } from "@/lib/gemini";
 
+// VERY IMPORTANT for Vercel: overrides the default 10-second timeout
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user) {

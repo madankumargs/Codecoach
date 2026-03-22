@@ -10,6 +10,10 @@ import { prisma } from "@/lib/prisma";
 import { generateQuestions } from "@/lib/gemini";
 import { Prisma } from "@prisma/client";
 
+// VERY IMPORTANT for Vercel: overrides the default 10-second timeout
+// AI generation can take 15-30 seconds.
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user || (session.user as any).role !== "ADMIN") {
