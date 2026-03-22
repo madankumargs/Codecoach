@@ -10,9 +10,10 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 // process.env reads from .env.local — the ! tells TypeScript "trust me, this exists"
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
-// Using gemini-1.5-flash-latest to ensure it correctly resolves on the v1beta API endpoint
+// Using gemini-pro (Gemini 1.0 Pro) because the user's API key/region is throwing
+// 404 Not Found on all Gemini 1.5 models for the v1beta endpoint.
 export const geminiModel = genAI.getGenerativeModel({
-  model: "gemini-1.5-flash-latest",
+  model: "gemini-pro",
   generationConfig: {
     // Lower temperature = more deterministic JSON output (less retries)
     temperature: 0.4,
