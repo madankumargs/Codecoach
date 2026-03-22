@@ -61,7 +61,7 @@ export default function NewExamPage() {
       // Step 2: Generate MCQ questions
       if (parseInt(form.mcqCount) > 0) {
         addLog(`🤖 Generating ${form.mcqCount} MCQ questions with Gemini AI...`);
-        await fetch("/api/questions/generate", {
+        const res = await fetch("/api/questions/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -72,13 +72,17 @@ export default function NewExamPage() {
             difficulty: form.difficulty,
           }),
         });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || "Failed to generate MCQ questions");
+        }
         addLog(`✅ ${form.mcqCount} MCQ questions generated`);
       }
 
       // Step 3: Generate coding questions
       if (parseInt(form.codingCount) > 0) {
         addLog(`🤖 Generating ${form.codingCount} coding problems...`);
-        await fetch("/api/questions/generate", {
+        const res = await fetch("/api/questions/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -89,13 +93,18 @@ export default function NewExamPage() {
             difficulty: form.difficulty,
           }),
         });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || "Failed to generate coding questions");
+        }
         addLog(`✅ ${form.codingCount} coding questions generated`);
       }
 
       addLog("🎉 Exam is ready!");
       setStep("done");
-    } catch (err) {
-      setError("Something went wrong. Check console for details.");
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Something went wrong during generation. Check Vercel logs.");
       setStep("form");
     }
   };
