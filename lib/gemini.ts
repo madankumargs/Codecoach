@@ -18,8 +18,9 @@ export const geminiModel = genAI.getGenerativeModel({
   generationConfig: {
     // Lower temperature = more deterministic JSON output (less retries)
     temperature: 0.4,
-    // Limit output tokens — we only need structured JSON, not essays
-    maxOutputTokens: 2048,
+    // Limit output tokens to 8192 instead of 2048 to prevent truncated JSON 
+    // when generating large lists of questions 
+    maxOutputTokens: 8192,
   },
 });
 
