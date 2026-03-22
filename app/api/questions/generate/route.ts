@@ -30,31 +30,39 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Syllabus not found" }, { status: 404 });
   }
 
-  // Call Gemini to generate questions
-  const questions = await generateQuestions(
-    syllabus.content,
-    type,
-    count,
-    difficulty
-  );
+  try {
+    // Call Gemini to generate questions
+    const questions = await generateQuestions(
+      syllabus.content,
+      type,
+      count,
+      difficulty
+    );
 
-  // Save generated questions to the database
-  // Prisma requires Prisma.DbNull (not native null) for nullable JSON fields
-  const saved = await prisma.question.createMany({
-    data: questions.map((q) => ({
-      examId,
-      type: q.type,
-      content: q.content,
-      difficulty: q.difficulty,
-      options: q.options ? (q.options as Prisma.InputJsonValue) : Prisma.DbNull,
-      answer: q.answer || undefined,
-      testCases: q.testCases ? (q.testCases as Prisma.InputJsonValue) : Prisma.DbNull,
-      points: q.points,
-    })),
-  });
+    // Save generated questions to the database
+    // Prisma requires Prisma.DbNull (not native null) for nullable JSON fields
+    const saved = await prisma.question.createMany({
+      data: questions.map((q) => ({
+        examId,
+        type: q.type,
+        content: q.content,
+        difficulty: q.difficulty,
+        options: q.options ? (q.options as Prisma.InputJsonValue) : Prisma.DbNull,
+        answer: q.answer || undefined,
+        testCases: q.testCases ? (q.testCases as Prisma.InputJsonValue) : Prisma.DbNull,
+        points: q.points,
+      })),
+    });
 
-  return NextResponse.json({
-    message: `Generated and saved ${saved.count} questions`,
-    count: saved.count,
-  });
+    return NextResponse.json({
+      message: `Generated and saved ${saved.count} questions`,
+      count: saved.count,
+    });
+  } catch (err: any) {
+    console.error("Gemini generation error:", err);
+    return NextResponse.json(
+      { error: `AI Error: ${err.message}` },
+      { status: 500 }
+    );
+  }
 }
