@@ -1,0 +1,138 @@
+// 📚 WHAT IS THIS FILE?
+// Prisma schema = the blueprint of your database.
+// You describe your tables (called "models") here in a clean syntax,
+// and Prisma generates the actual SQL tables + TypeScript types for you.
+// Think of it as: "I describe what data I want to store, Prisma handles the rest."
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // "postgresql" = we're using PostgreSQL as our database (hosted on Neon)
+  // In Prisma v7, the URL is configured in prisma.config.ts (not here)
+  provider = "postgresql"
+}
+
+// 👤 USERS TABLE
+// Stores every person who logs in — students and admins
+model User {
+  id        String   @id @default(cuid()) // Unique ID (cuid = collision-resistant ID)
+  name      String?                        // ? means optional (nullable)
+  email     String   @unique               // Must be unique per user
+  password  String?                        // Hashed password for credentials login
+  role      Role     @default(STUDENT)     // Default role is STUDENT
+  image     String?                        // Optional profile picture URL
+  createdAt DateTime @default(now())
+
+  // Relations: one user can have many submissions and exam enrollments
+  submissions   Submission[]
+  enrollments   ExamEnrollment[]
+  sessions      Session[]
+}
+
+// 🎭 ENUM: defines the allowed values for a field
+enum Role {
+  STUDENT
+  ADMIN
+}
+
+// 🔐 SESSION TABLE (used by NextAuth to track logged-in sessions)
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// 📖 SYLLABUS TABLE
+// Admins upload syllabus content (text). AI reads it to generate questions.
+model Syllabus {
+  id        String   @id @default(cuid())
+  title     String
+  subject   String
+  content   String   @db.Text  // @db.Text = store large text (not limited to 255 chars)
+  adminId   String
+  createdAt DateTime @default(now())
+
+  // One syllabus can be used for many exams
+  exams     Exam[]
+}
+
+// 📝 EXAM TABLE
+// Represents a scheduled coding exam
+model Exam {
+  id          String     @id @default(cuid())
+  title       String
+  syllabusId  String
+  syllabus    Syllabus   @relation(fields: [syllabusId], references: [id])
+  duration    Int        // Duration in minutes
+  scheduledAt DateTime
+  status      ExamStatus @default(UPCOMING)
+  createdAt   DateTime   @default(now())
+
+  enrollments ExamEnrollment[]
+  questions   Question[]
+  submissions Submission[]
+}
+
+enum ExamStatus {
+  UPCOMING
+  LIVE
+  COMPLETED
+}
+
+// 🎟️ EXAM ENROLLMENT
+// Tracks which students are enrolled in which exams
+model ExamEnrollment {
+  id     String @id @default(cuid())
+  userId String
+  examId String
+  user   User   @relation(fields: [userId], references: [id])
+  exam   Exam   @relation(fields: [examId], references: [id])
+
+  @@unique([userId, examId]) // A student can only enroll once per exam
+}
+
+// ❓ QUESTION TABLE
+// AI-generated questions stored per exam
+model Question {
+  id          String       @id @default(cuid())
+  examId      String
+  exam        Exam         @relation(fields: [examId], references: [id])
+  type        QuestionType
+  content     String       @db.Text  // The full question text
+  difficulty  String       @default("medium")
+  options     Json?        // For MCQ: ["option A", "option B", ...]
+  answer      String?      // For MCQ: correct answer
+  testCases   Json?        // For coding: [{input: "1 2", expected: "3"}]
+  points      Int          @default(10)
+  submissions Submission[]
+}
+
+enum QuestionType {
+  MCQ
+  CODING
+}
+
+// 📤 SUBMISSION TABLE
+// Every time a student submits an answer, it's stored here
+model Submission {
+  id          String   @id @default(cuid())
+  userId      String
+  examId      String
+  questionId  String
+  code        String   @db.Text   // The student's code
+  language    String   @default("python")
+  testScore   Float    @default(0) // 0-40: based on test cases passing
+  aiScore     Float    @default(0) // 0-60: based on AI quality evaluation
+  totalScore  Float    @default(0) // Final score = testScore + aiScore
+  aiFeedback  String?  @db.Text   // AI's written feedback
+  timeTaken   Int      @default(0) // Seconds taken to answer
+  submittedAt DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id])
+  exam     Exam     @relation(fields: [examId], references: [id])
+  question Question @relation(fields: [questionId], references: [id])
+}

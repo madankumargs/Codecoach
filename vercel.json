@@ -1,0 +1,18 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "npx prisma generate && next build",
+  "functions": {
+    "app/api/questions/generate/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/submissions/route.ts": {
+      "maxDuration": 30
+    },
+    "app/api/execute/route.ts": {
+      "maxDuration": 15
+    },
+    "app/api/evaluate/route.ts": {
+      "maxDuration": 30
+    }
+  }
+}
